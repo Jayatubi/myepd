@@ -19,7 +19,6 @@ GFX::GFX()
 
     _u8g2 = new U8G2_FOR_ADAFRUIT_GFX();
     _u8g2->begin(*_display);
-    _u8g2->setFontDirection(0);
     _u8g2->setForegroundColor(GxEPD_BLACK);
     _u8g2->setBackgroundColor(GxEPD_WHITE);
     _u8g2->setFont(u8g2_font_wqy14_t_gb2312);

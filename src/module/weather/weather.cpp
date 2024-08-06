@@ -3,31 +3,122 @@
 #include "module/console/console.h"
 #include "module/network/network.h"
 #include <HttpClient.h>
+#include <ArduinoJson.h>
 
-Weather::Weather() {
-    server = "https://api.seniverse.com/v3/weather/daily.json";
-    api_key = WEATHER_API_KEY;
-    city = "chengdu";
+Weather::Weather()
+    : _state(idle) {
+    server = "https://api.seniverse.com/v3/weather";
+    apiKey = WEATHER_API_KEY;
+    cityCode = "chengdu";
     lang = "zh-Hans";
 }
 
+const Weather::Now& Weather::now() const {
+    return _now;
+}
 
-void Weather::fetch() {
+const Core::Vector<Weather::Daily>& Weather::dailies() const {
+    return _dailies;
+}
+
+void Weather::update(Core::U64 deltaMs) {
+    switch (_state) {
+        case idle: {
+            changeState(fetching);
+            break;
+        }
+        case fetching: {
+            auto& network = Network::instance();
+            network.wakeup();
+            if (network.online()) {
+                fetchNow();
+                fetchDailies();
+                changeState(fetched);
+                _refetchTimeout = 60_m;
+            }
+            break;
+        }
+        case fetched: {
+            _refetchTimeout -= deltaMs;
+            if (_refetchTimeout <= 0) {
+                changeState(idle);
+            }
+            break;
+        }
+    }
+}
+
+void Weather::fetchNow() {
     String url = server
-        + "?key=" + api_key
-        + "&location=" + city
+        + "/now.json"
+        + "?key=" + apiKey
+        + "&location=" + cityCode
         + "&language=" + lang
         + "&unit=" + "c";
-
-    Network::instance().prepare();
 
     HTTPClient http;
     http.begin(url);
     http.setTimeout(5000);
     auto code = http.GET();
     if (code == HTTP_CODE_OK) {
-        Console::instance().serial().println(http.getString());
+        JsonDocument doc;
+        deserializeJson(doc, http.getString());
+        auto now = doc["results"][0]["now"];
+        _now.temperature = now["temperature"];
+        _now.code = now["code"];
+
+        _city = doc["results"][0]["location"]["name"].as<String>();
     } else {
-        lastError = http.errorToString(code);
+        Console::instance().serial().println(http.errorToString(code));
     }
+}
+
+void Weather::fetchDailies() {
+    String url = server
+        + "/daily.json"
+        + "?key=" + apiKey
+        + "&location=" + cityCode
+        + "&language=" + lang
+        + "&unit=" + "c";
+
+    HTTPClient http;
+    http.begin(url);
+    http.setTimeout(5000);
+    auto code = http.GET();
+    if (code == HTTP_CODE_OK) {
+        JsonDocument doc;
+        deserializeJson(doc, http.getString());
+        _dailies.clear();
+        for (const auto& daily : doc["results"][0]["daily"].as<JsonArray>()) {
+            Daily _daily;
+            _daily.daylight = daily["code_day"];
+            _daily.night = daily["code_night"];
+            _daily.high = daily["high"];
+            _daily.low = daily["low"];
+            _daily.wind = daily["wind_direction_degree"];
+            _daily.rainfall = daily["rainfall"];
+            _daily.precip = daily["precip"];
+            _dailies.emplace_back(_daily);
+        }
+    } else {
+        Console::instance().serial().println(http.errorToString(code));
+    }
+}
+
+Weather::State Weather::state() const {
+    return _state;
+}
+
+void Weather::changeState(Weather::State newState) {
+    if (_state != newState) {
+        _state = newState;
+
+        Event_WeatherChange event;
+        event.state = _state;
+        Event::instance().On(event);
+    }
+}
+
+const String& Weather::city() const {
+    return _city;
 }

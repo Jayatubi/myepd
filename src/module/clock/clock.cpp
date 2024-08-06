@@ -14,33 +14,44 @@ Clock::~Clock() {
 
 void Clock::update(Core::U64 deltaMs) {
     switch (_state) {
-        case idle:
-            Network::instance().prepare();
-            if (Network::instance().is_ready()) {
+        case idle: {
+            changeState(prepare);
+            break;
+        }
+        case prepare: {
+            auto& network = Network::instance();
+            network.wakeup();
+            if (network.online()) {
                 configTzTime(time_zone, ntp_server);
-                setState(syncing);
-                _retryTimeout = 5000;
+                changeState(syncing);
+                _syncTimeout = 5_m;
             }
             break;
+        }
         case syncing: {
             if (getLocalTime(&_timeinfo, 0)) {
-                setState(synced);
+                changeState(synced);
             } else {
-                _retryTimeout -= deltaMs;
-                if (_retryTimeout <= 0) {
-                    setState(idle);
+                _syncTimeout -= deltaMs;
+                if (_syncTimeout <= 0) {
+                    _resyncTimeout = 60_m;
+                    changeState(prepare);
                 }
             }
         }
             break;
         case synced: {
+            _resyncTimeout -= deltaMs;
+            if (_resyncTimeout <= 0) {
+                changeState(idle);
+            }
         }
             break;
     }
 }
 
 void Clock::resync() {
-    setState(idle);
+    changeState(idle);
 }
 
 time_t Clock::getTime() const {
@@ -93,13 +104,11 @@ Clock::State Clock::state() const {
     return _state;
 }
 
-void Clock::setState(Clock::State newState) {
+void Clock::changeState(Clock::State newState) {
     if (_state != newState) {
         _state = newState;
-        if (auto eventInstance = Event::checkInstance()) {
-            Event_ClockStateChange event{};
-            event.state = _state;
-            eventInstance->On(event);
-        }
+        Event_ClockStateChange event;
+        event.state = _state;
+        Event::instance().On(event);
     }
 }

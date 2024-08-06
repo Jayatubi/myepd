@@ -8,22 +8,21 @@
 #include "icons/icon_wifi.h"
 #include "icons/icon_battery.h"
 
+static const int statusIconSize = 16;
+
 void App::Bootstrap() {
     Application::Bootstrap();
 
     setupBattery();
     setupNetwork();
+    setupClock();
+    setupWeather();
 }
 
 
 void App::setupNetwork() {
     Event::instance().Listen(Core::Bind([this](const Event_NetworkStateChange& event) {
         invalidate("network");
-
-        if (event.state == Network::State::connected) {
-            setupClock();
-            setupWeather();
-        }
     }));
 }
 
@@ -33,7 +32,7 @@ void App::setupClock() {
         if (event.state == Clock::synced) {
             auto& timer = Timer::instance();
             timer.setTimeout((60 - Clock::instance().getSeconds()) * 1000, [this, ticket]() mutable {
-                ticket = Timer::instance().setInterval(60 * 1000, [this]() {
+                ticket = Timer::instance().setInterval(60_m, [this]() {
                     invalidate("time");
                 });
                 invalidate("time");
@@ -49,13 +48,11 @@ void App::setupWeather() {
     Event::instance().Listen(Core::Bind([this](const Event_WeatherChange& event) mutable {
         invalidate("weather");
     }));
-
-    Weather::instance().fetch();
 }
 
 
 void App::setupBattery() {
-    Timer::instance().setInterval(60000, Core::Bind([]() {
+    Timer::instance().setInterval(1_m, Core::Bind([]() {
         Battery::instance().measureBatteryLevel();
     }));
 
@@ -69,11 +66,11 @@ void App::repaint() {
     if (with_flag("borders")) {
         auto& gfx = GFX::instance();
         repaintInRegion(0, 0, gfx.screenWidth(), gfx.screenHeight(),
-         [](GFX& gfx) {
-            for (int y = gfx.screenHeight() - 1; y >= 0; y -= 8) {
-                gfx.display().drawLine(0, y, gfx.screenWidth(), y, GxEPD_BLACK);
-            }
-        });
+                        [](GFX& gfx) {
+                            for (int y = gfx.screenHeight() - 1; y >= 0; y -= 8) {
+                                gfx.display().drawLine(0, y, gfx.screenWidth(), y, GxEPD_BLACK);
+                            }
+                        });
     }
     if (with_flag("network") || with_flag("battery")) {
         repaintStatusbar();
@@ -106,20 +103,19 @@ void App::repaintInRegion(
 }
 
 void App::repaintStatusbar() {
-    static const int iconSize = 16;
     auto& gfx = GFX::instance();
     auto left = gfx.screenWidth() / 2;
     auto top = 0;
     auto right = gfx.screenWidth();
-    auto bottom = iconSize;
+    auto bottom = statusIconSize;
 
     repaintInRegion(left, top, right, bottom,
                     [&](GFX& gfx) {
-                        int px = right - iconSize;
+                        int px = right - statusIconSize;
 
                         auto nextIcon = [&](const Core::U8* bitmap) {
-                            gfx.drawBitmap(bitmap, px, top, iconSize, iconSize);
-                            px -= iconSize;
+                            gfx.drawBitmap(bitmap, px, top, statusIconSize, statusIconSize);
+                            px -= statusIconSize;
                         };
 
                         nextIcon(getBatteryIcon(Battery::instance().level()));
@@ -166,4 +162,14 @@ void App::repaintWeather() {
                         auto& u8g2 = gfx.u8g2();
                         u8g2.print("Weather is coming soon...");
                     });
+
+    auto& weather = Weather::instance();
+    if (weather.state() == Weather::State::fetched) {
+        repaintInRegion(0, 0, gfx.screenWidth() / 2, statusIconSize,
+                        [&](GFX& gfx) {
+                            auto& u8g2 = gfx.u8g2();
+                            u8g2.setCursor(0, statusIconSize);
+                            gfx.u8g2().printf("%s %d℃", weather.city().c_str(), weather.now().temperature);
+                        });
+    }
 }

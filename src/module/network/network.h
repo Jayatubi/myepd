@@ -21,17 +21,17 @@ public:
 
     IPAddress get_ipaddress() const;
 
-    bool is_ready() const;
+    bool online() const;
 
     State state() const;
 
-    void prepare();
+    void wakeup();
 
 private:
     void changeState(State newState);
 
 private:
-    bool _requested;
+    bool _awake;
     State _state;
     Core::S64 duration;
     Core::S64 lifetime;

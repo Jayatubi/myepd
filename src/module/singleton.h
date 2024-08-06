@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/basic_type/basic_type.h"
+#include <Arduino.h>
 
 template<typename T>
 class Singleton {

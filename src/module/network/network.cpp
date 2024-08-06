@@ -5,7 +5,7 @@
 #include <WiFi.h>
 
 Network::Network():
-    _requested(false) {
+    _awake(false) {
     _state = idle;
     ssid = WIFI_SSID;
     password = WIFI_PASSWORD;
@@ -14,9 +14,9 @@ Network::Network():
     lifetime = 0;
 }
 
-void Network::prepare() {
+void Network::wakeup() {
     if (_state == idle) {
-        _requested = true;
+        _awake = true;
     }
     if (_state == connected) {
         resetLifetime();
@@ -27,11 +27,10 @@ void Network::update(int64_t deltaMs) {
     const auto status = WiFiClass::status();
     switch (_state) {
         case idle: {
-            if (_requested) {
+            if (_awake) {
                 WiFiClass::mode(WIFI_STA);
                 WiFi.begin(ssid, password);
                 changeState(connecting);
-                _requested = false;
             }
         }
             break;
@@ -49,6 +48,7 @@ void Network::update(int64_t deltaMs) {
             lifetime -= deltaMs;
             if (status != WL_CONNECTED || lifetime <= 0) {
                 WiFi.disconnect(true);
+                _awake = false;
                 changeState(idle);
             }
         }
@@ -75,7 +75,7 @@ IPAddress Network::get_ipaddress() const {
     return ip;
 }
 
-bool Network::is_ready() const {
+bool Network::online() const {
     return _state == connected;
 }
 
@@ -86,10 +86,8 @@ Network::State Network::state() const {
 void Network::changeState(Network::State newState) {
     if (_state != newState) {
         _state = newState;
-        if (auto eventInstance = Event::checkInstance()) {
-            Event_NetworkStateChange event{};
-            event.state = _state;
-            eventInstance->On(event);
-        }
+        Event_NetworkStateChange event{};
+        event.state = _state;
+        Event::instance().On(event);
     }
 }

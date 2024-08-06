@@ -7,6 +7,7 @@ class Clock : public Singleton<Clock> {
 public:
     enum State {
         idle,
+        prepare,
         syncing,
         synced,
     };
@@ -43,7 +44,7 @@ private:
 
     tm& updateTimeinfo();
 
-    void setState(State newState);
+    void changeState(Clock::State newState);
 
 private:
     State _state;
@@ -52,7 +53,8 @@ private:
     const char* time_zone;
     const char* ntp_server;
 
-    Core::S64 _retryTimeout;
+    Core::S64 _syncTimeout;
+    Core::S64 _resyncTimeout;
 };
 
 struct Event_ClockStateChange : public EventBase {

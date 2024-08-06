@@ -49,10 +49,8 @@ Core::U8 Battery::level() {
 void Battery::setLevel(Core::U8 newLevel) {
     if (_level != newLevel) {
         _level = newLevel;
-        if (auto eventInstance = Event::checkInstance()) {
-            Event_BatteryLevelChange event{};
-            event.level = _level;
-            eventInstance->On(event);
-        }
+        Event_BatteryLevelChange event;
+        event.level = _level;
+        Event::instance().On(event);
     }
 }
