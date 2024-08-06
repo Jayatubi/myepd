@@ -68,7 +68,8 @@ void App::setupBattery() {
 void App::repaint() {
     if (with_flag("borders")) {
         auto& gfx = GFX::instance();
-        repaintInRegion(0, 0, gfx.screenWidth(), gfx.screenHeight(), [](GFX& gfx) {
+        repaintInRegion(0, 0, gfx.screenWidth(), gfx.screenHeight(),
+         [](GFX& gfx) {
             for (int y = gfx.screenHeight() - 1; y >= 0; y -= 8) {
                 gfx.display().drawLine(0, y, gfx.screenWidth(), y, GxEPD_BLACK);
             }

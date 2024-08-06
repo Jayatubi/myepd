@@ -15,7 +15,7 @@ public:
 
     virtual void Tick(Core::U64 frameCount);
 
-    virtual void invalidate(const String& flag);
+    virtual void invalidate(const String& flag = "*");
 
     virtual void repaint();
 
@@ -23,5 +23,4 @@ protected:
     bool with_flag(const String& flag);
 
     Core::Set<String> flags;
-    Core::U32 repaintTicket;
 };

@@ -8,116 +8,106 @@
 #include "module/battery/battery.h"
 #include "module/weather/weather.h"
 
-namespace Details {
-    template<typename ValueType>
-    struct HasUpdate {
-        template<typename TestType>
-        static Core::Meta::Yes Tester(decltype(std::declval<TestType>().update(std::declval<Core::U64>()))*);
+namespace Details
+{
+    template <typename ValueType>
+    struct HasUpdate
+    {
+        template <typename TestType>
+        static Core::Meta::Yes Tester(decltype(std::declval<TestType>().update(std::declval<Core::U64>())) *);
 
-        template<typename TestType>
+        template <typename TestType>
         static Core::Meta::No Tester(...);
 
-        enum {
+        enum
+        {
             Result = Core::Meta::IsSame<decltype(Tester<ValueType>(nullptr)), Core::Meta::Yes>::Result
         };
     };
 
 }
 
-template<typename ... ClassTypes>
-class Modules {
+template <typename... ClassTypes>
+class Modules
+{
 public:
     Modules() = default;
-
     ~Modules() = default;
-
-    virtual void Tick(Core::U64 frameCount) {
-    };
+    static void Tick(Core::U64 frameCount) {};
 };
 
-template<typename ThisType, typename ... RestTypes>
-class Modules<ThisType, RestTypes ...> : public Modules<RestTypes ...> {
+template <typename ThisType, typename... RestTypes>
+class Modules<ThisType, RestTypes...> : public Modules<RestTypes...>
+{
 public:
-    typedef Modules<RestTypes ...> Base;
-public:
-    Modules() {
-        ThisType::renew();
-    }
+    typedef Modules<RestTypes...> Base;
 
-    ~Modules() {
+public:
+    Modules()
+    {
         ThisType::release();
     }
 
-    template<typename TestType>
-    void TickImpl(typename Core::Meta::EnableIf<Details::HasUpdate<TestType>::Result, Core::U64>::Result frameCount) {
-        ThisType::instance().update(frameCount);
-        Base::Tick(frameCount);
+    ~Modules()
+    {
+        ThisType::renew();
     }
 
-    template<typename TestType>
-    void TickImpl(typename Core::Meta::EnableIf<!Details::HasUpdate<TestType>::Result, Core::U64>::Result frameCount) {
+    static void Tick(Core::U64 frameCount)
+    {
         Base::Tick(frameCount);
-    }
-
-    void Tick(Core::U64 frameCount) override {
-        TickImpl<ThisType>(frameCount);
+        if constexpr (Details::HasUpdate<ThisType>::Result)
+        {
+            ThisType::instance().update(frameCount);
+        }
     };
 };
 
+Application::Application()
+{
+}
+
 typedef Modules<
-    GFX,
     Console,
+    GFX,
     Network,
     Clock,
     Timer,
     Event,
     Battery,
-    Weather
-> AllModules;
-AllModules* allModules = nullptr;
+    Weather>
+    RegisterdModules;
 
-Application::Application()
-    : repaintTicket(0) {
-}
-
-void Application::Bootstrap() {
-    assert(allModules == nullptr);
-    if (allModules == nullptr) {
-        allModules = new AllModules();
-    }
-
+void Application::Bootstrap()
+{
+    RegisterdModules();
     invalidate("*");
 }
 
-void Application::Teardown() {
-    if (allModules != nullptr) {
-        delete allModules;
-        allModules = nullptr;
+void Application::Teardown()
+{
+}
+
+void Application::Tick(Core::U64 frameCount)
+{
+    RegisterdModules::Tick(frameCount);
+    if (flags.size() > 0)
+    {
+        repaint();
+        flags.clear();
     }
 }
 
-void Application::Tick(Core::U64 frameCount) {
-    if (allModules != nullptr) {
-        allModules->Tick(frameCount);
-    }
-}
-
-bool Application::with_flag(const String& flag) {
+bool Application::with_flag(const String &flag)
+{
     return flags.contains(flag) || flags.contains("*");
 }
 
-void Application::invalidate(const String& flag) {
+void Application::invalidate(const String &flag)
+{
     flags.insert(flag);
-
-    if (repaintTicket == 0) {
-        repaintTicket = Timer::instance().setTimeout(0, [this]() {
-            repaint();
-            flags.clear();
-            repaintTicket = 0;
-        });
-    }
 }
 
-void Application::repaint() {
-
+void Application::repaint()
+{
 }
