@@ -20,7 +20,7 @@ void App::setupNetwork() {
     Event::instance().Listen(Core::Bind([this](const Event_NetworkStateChange& event) {
         invalidate("network");
 
-        if (event.state == Network::State::ready) {
+        if (event.state == Network::State::connected) {
             setupClock();
             setupWeather();
         }
@@ -46,7 +46,7 @@ void App::setupClock() {
 }
 
 void App::setupWeather() {
-    Event::instance().Listen(Core::Bind([this](const Event_WeatherStateChange& event) mutable {
+    Event::instance().Listen(Core::Bind([this](const Event_WeatherChange& event) mutable {
         invalidate("weather");
     }));
 
@@ -108,7 +108,7 @@ void App::repaintInRegion(
 void App::repaintStatusbar() {
     static const int iconSize = 16;
     auto& gfx = GFX::instance();
-    auto left = 0;
+    auto left = gfx.screenWidth() / 2;
     auto top = 0;
     auto right = gfx.screenWidth();
     auto bottom = iconSize;
@@ -125,7 +125,7 @@ void App::repaintStatusbar() {
                         nextIcon(getBatteryIcon(Battery::instance().level()));
 
                         auto& network = Network::instance();
-                        if (network.state() == Network::State::ready) {
+                        if (network.state() == Network::State::connected) {
                             nextIcon(Icon_WiFi);
                         }
                     });

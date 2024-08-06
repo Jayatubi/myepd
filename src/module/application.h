@@ -13,7 +13,7 @@ public:
 
     virtual void Teardown();
 
-    virtual void Tick(Core::U64 frameCount);
+    virtual void Tick();
 
     virtual void invalidate(const String& flag = "*");
 

@@ -15,7 +15,7 @@ public:
 
     ~Clock();
 
-    void update(Core::U64 frameCount);
+    void update(Core::U64 deltaMs);
 
     void resync();
 
@@ -37,8 +37,6 @@ public:
 
     Core::U64 getMilliseconds();
 
-    Core::U32 deltaTime();
-
     State state() const;
 
 private:
@@ -49,14 +47,12 @@ private:
 
 private:
     State _state;
-    tm _timeinfo{};
+    tm _timeinfo;
 
     const char* time_zone;
     const char* ntp_server;
 
-    Core::S32 _retryTimeout;
-    Core::U64 _lastMilliseconds;
-    Core::U32 _deltaTime;
+    Core::S64 _retryTimeout;
 };
 
 struct Event_ClockStateChange : public EventBase {

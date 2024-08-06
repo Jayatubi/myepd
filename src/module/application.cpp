@@ -33,7 +33,7 @@ class Modules
 public:
     Modules() = default;
     ~Modules() = default;
-    static void Tick(Core::U64 frameCount) {};
+    static void Tick(Core::U64 deltaMs) {};
 };
 
 template <typename ThisType, typename... RestTypes>
@@ -53,12 +53,12 @@ public:
         ThisType::renew();
     }
 
-    static void Tick(Core::U64 frameCount)
+    static void Tick(Core::U64 deltaMs)
     {
-        Base::Tick(frameCount);
+        Base::Tick(deltaMs);
         if constexpr (Details::HasUpdate<ThisType>::Result)
         {
-            ThisType::instance().update(frameCount);
+            ThisType::instance().update(deltaMs);
         }
     };
 };
@@ -88,9 +88,13 @@ void Application::Teardown()
 {
 }
 
-void Application::Tick(Core::U64 frameCount)
+void Application::Tick()
 {
-    RegisterdModules::Tick(frameCount);
+    auto now = millis();
+    static Core::U64 lastMs = 0;
+    RegisterdModules::Tick(lastMs != 0 ? now - lastMs : 0);
+    lastMs = now;
+
     if (flags.size() > 0)
     {
         repaint();

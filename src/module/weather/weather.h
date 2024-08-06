@@ -6,21 +6,11 @@
 
 class Weather : public Singleton<Weather> {
 public:
-    enum State {
-        idle,
-        querying,
-        queried
-    };
-
     Weather();
 
     void fetch();
 
 private:
-    void setState(State newState);
-
-private:
-    State _state;
     String server;
     String api_key;
     String lang;
@@ -29,6 +19,6 @@ private:
     String lastError;
 };
 
-struct Event_WeatherStateChange : public EventBase {
-DECLARE_EVENT(Event_WeatherStateChange)
+struct Event_WeatherChange : public EventBase {
+DECLARE_EVENT(Event_WeatherChange)
 };

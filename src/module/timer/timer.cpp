@@ -34,7 +34,7 @@ void Timer::clear(Core::U32 ticket) {
     });
 }
 
-void Timer::update(Core::U64 frameCount) {
+void Timer::update(Core::U64 deltaMs) {
     for (const auto& ticket : pendingRemove) {
         contexts.erase(ticket);
     }

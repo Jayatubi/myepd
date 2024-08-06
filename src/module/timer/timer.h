@@ -10,7 +10,7 @@ class Timer : public Singleton<Timer> {
 public:
     Timer();
 
-    void update(Core::U64 frameCount);
+    void update(Core::U64 deltaMs);
 
     typedef Core::Function<void> Callback;
 

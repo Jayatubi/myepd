@@ -4,42 +4,61 @@
 
 #include <WiFi.h>
 
-Network::Network() {
+Network::Network():
+    _requested(false) {
     _state = idle;
     ssid = WIFI_SSID;
     password = WIFI_PASSWORD;
+    // Disconnect if idle for 60 seconds
+    duration = 60000;
+    lifetime = 0;
 }
 
-void Network::update(int64_t frame_count) {
+void Network::prepare() {
+    if (_state == idle) {
+        _requested = true;
+    }
+    if (_state == connected) {
+        resetLifetime();
+    }
+}
+
+void Network::update(int64_t deltaMs) {
     const auto status = WiFiClass::status();
     switch (_state) {
         case idle: {
-            WiFiClass::mode(WIFI_STA);
-            WiFi.begin(ssid, password);
-            changeState(connecting);
+            if (_requested) {
+                WiFiClass::mode(WIFI_STA);
+                WiFi.begin(ssid, password);
+                changeState(connecting);
+                _requested = false;
+            }
         }
             break;
         case connecting: {
             if (status == WL_CONNECTED) {
-                changeState(ready);
+                resetLifetime();
+                changeState(connected);
             }
             if (status == WL_CONNECT_FAILED) {
-                changeState(fail);
-            }
-        }
-            break;
-        case ready: {
-            if (status == WL_CONNECTION_LOST) {
                 changeState(idle);
             }
-            break;
         }
-        case fail: {
-            changeState(idle);
+            break;
+        case connected: {
+            lifetime -= deltaMs;
+            if (status != WL_CONNECTED || lifetime <= 0) {
+                WiFi.disconnect(true);
+                changeState(idle);
+            }
         }
             break;
         default:break;
     }
+}
+
+void Network::resetLifetime() {
+    lifetime = duration;
 }
 
 const char* Network::get_ssid() const {
@@ -49,7 +68,7 @@ const char* Network::get_ssid() const {
 IPAddress Network::get_ipaddress() const {
     IPAddress ip;
 
-    if (_state == ready) {
+    if (_state == connected) {
         ip = WiFi.localIP();
     }
 
@@ -57,7 +76,7 @@ IPAddress Network::get_ipaddress() const {
 }
 
 bool Network::is_ready() const {
-    return _state == ready;
+    return _state == connected;
 }
 
 Network::State Network::state() const {

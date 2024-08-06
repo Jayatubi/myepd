@@ -10,13 +10,12 @@ public:
     enum State {
         idle,
         connecting,
-        ready,
-        fail
+        connected,
     };
 
     Network();
 
-    void update(int64_t frame_count);
+    void update(int64_t deltaMs);
 
     const char* get_ssid() const;
 
@@ -26,13 +25,20 @@ public:
 
     State state() const;
 
+    void prepare();
+
 private:
     void changeState(State newState);
 
 private:
+    bool _requested;
     State _state;
+    Core::S64 duration;
+    Core::S64 lifetime;
     const char* ssid;
     const char* password;
+
+    void resetLifetime();
 };
 
 struct Event_NetworkStateChange : public EventBase {

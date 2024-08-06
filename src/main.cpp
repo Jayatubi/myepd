@@ -9,7 +9,5 @@ void setup() {
 
 
 void loop() {
-    static int64_t frameCount = 0;
-    app.Tick(frameCount);
-    frameCount++;
+    app.Tick();
 }

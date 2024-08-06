@@ -1,6 +1,7 @@
 #include "weather.h"
 #include "module/private.h"
 #include "module/console/console.h"
+#include "module/network/network.h"
 #include <HttpClient.h>
 
 Weather::Weather() {
@@ -10,11 +11,6 @@ Weather::Weather() {
     lang = "zh-Hans";
 }
 
-void Weather::setState(Weather::State newState) {
-    if (_state != newState) {
-        _state = newState;
-    }
-}
 
 void Weather::fetch() {
     String url = server
@@ -22,6 +18,8 @@ void Weather::fetch() {
         + "&location=" + city
         + "&language=" + lang
         + "&unit=" + "c";
+
+    Network::instance().prepare();
 
     HTTPClient http;
     http.begin(url);

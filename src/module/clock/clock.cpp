@@ -4,7 +4,7 @@
 #include "module/private.h"
 
 Clock::Clock()
-    : _state(idle), _lastMilliseconds(0), _deltaTime(0) {
+    : _state(idle) {
     time_zone = TIME_ZONE;
     ntp_server = NTP_SERVER;
 }
@@ -12,15 +12,10 @@ Clock::Clock()
 Clock::~Clock() {
 }
 
-void Clock::update(Core::U64 frameCount) {
-    auto nowMilliseconds = millis();
-    if (_lastMilliseconds != 0) {
-        _deltaTime = nowMilliseconds - _lastMilliseconds;
-    }
-    _lastMilliseconds = nowMilliseconds;
-
+void Clock::update(Core::U64 deltaMs) {
     switch (_state) {
         case idle:
+            Network::instance().prepare();
             if (Network::instance().is_ready()) {
                 configTzTime(time_zone, ntp_server);
                 setState(syncing);
@@ -31,7 +26,7 @@ void Clock::update(Core::U64 frameCount) {
             if (getLocalTime(&_timeinfo, 0)) {
                 setState(synced);
             } else {
-                _retryTimeout -= _deltaTime;
+                _retryTimeout -= deltaMs;
                 if (_retryTimeout <= 0) {
                     setState(idle);
                 }
@@ -83,11 +78,8 @@ Core::S32 Clock::getSeconds() {
 }
 
 tm& Clock::updateTimeinfo() {
-    static Core::U64 updateMilliseconds = 0;
-    if (updateMilliseconds != _lastMilliseconds) {
-        getLocalTime(&_timeinfo, 0);
-        updateMilliseconds = _lastMilliseconds;
-    }
+    // TODO: Cache if possible
+    getLocalTime(&_timeinfo, 0);
     return _timeinfo;
 }
 
@@ -96,11 +88,6 @@ Core::U64 Clock::getMilliseconds() {
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
-
-Core::U32 Clock::deltaTime() {
-    return _deltaTime;
-}
-
 
 Clock::State Clock::state() const {
     return _state;
