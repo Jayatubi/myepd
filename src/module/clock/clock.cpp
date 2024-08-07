@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include "clock.h"
 #include "module/network/network.h"
 #include "module/private.h"
@@ -24,7 +23,7 @@ void Clock::update(Core::U64 deltaMs) {
             if (network.online()) {
                 configTzTime(time_zone, ntp_server);
                 changeState(syncing);
-                _syncTimeout = 5_m;
+                _syncInterval = 5_m;
             }
             break;
         }
@@ -32,17 +31,17 @@ void Clock::update(Core::U64 deltaMs) {
             if (getLocalTime(&_timeinfo, 0)) {
                 changeState(synced);
             } else {
-                _syncTimeout -= deltaMs;
-                if (_syncTimeout <= 0) {
-                    _resyncTimeout = 60_m;
+                _syncInterval -= deltaMs;
+                if (_syncInterval <= 0) {
+                    _resyncInterval = 60_m;
                     changeState(prepare);
                 }
             }
         }
             break;
         case synced: {
-            _resyncTimeout -= deltaMs;
-            if (_resyncTimeout <= 0) {
+            _resyncInterval -= deltaMs;
+            if (_resyncInterval <= 0) {
                 changeState(idle);
             }
         }

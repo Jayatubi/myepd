@@ -9,8 +9,6 @@ Network::Network():
     _state = idle;
     ssid = WIFI_SSID;
     password = WIFI_PASSWORD;
-    // Disconnect if idle for 60 seconds
-    duration = 60000;
     lifetime = 0;
 }
 
@@ -58,7 +56,7 @@ void Network::update(int64_t deltaMs) {
 }
 
 void Network::resetLifetime() {
-    lifetime = duration;
+    lifetime = 60_m;
 }
 
 const char* Network::get_ssid() const {

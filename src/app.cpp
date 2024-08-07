@@ -19,7 +19,6 @@ void App::Bootstrap() {
     setupWeather();
 }
 
-
 void App::setupNetwork() {
     Event::instance().Listen(Core::Bind([this](const Event_NetworkStateChange& event) {
         invalidate("network");
@@ -50,17 +49,11 @@ void App::setupWeather() {
     }));
 }
 
-
 void App::setupBattery() {
-    Timer::instance().setInterval(1_m, Core::Bind([]() {
-        Battery::instance().measureBatteryLevel();
-    }));
-
     Event::instance().Listen(Core::Bind([this](const Event_BatteryLevelChange& event) {
         invalidate("battery");
     }));
 }
-
 
 void App::repaint() {
     if (with_flag("borders")) {

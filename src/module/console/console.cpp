@@ -1,5 +1,4 @@
 #include "console.h"
-#include <Arduino.h>
 
 Console::Console() {
     Serial.begin(115200);

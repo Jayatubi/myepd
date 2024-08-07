@@ -53,8 +53,8 @@ private:
     const char* time_zone;
     const char* ntp_server;
 
-    Core::S64 _syncTimeout;
-    Core::S64 _resyncTimeout;
+    Core::S64 _syncInterval;
+    Core::S64 _resyncInterval;
 };
 
 struct Event_ClockStateChange : public EventBase {

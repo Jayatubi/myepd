@@ -33,7 +33,6 @@ private:
 private:
     bool _awake;
     State _state;
-    Core::S64 duration;
     Core::S64 lifetime;
     const char* ssid;
     const char* password;

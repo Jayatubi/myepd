@@ -13,8 +13,9 @@ public:
 
     Core::U8 level();
 
-    void measureBatteryLevel();
+    void sampleBatteryLevel();
 
+    void update(Core::U64 deltaMs);
 private:
     void setLevel(Core::U8 newLevel);
 
@@ -25,6 +26,7 @@ private:
     Core::Vector<Core::F32> samples;
     Core::U32 sampleIndex;
     Core::U8 _level;
+    Core::S32 sampleInterval;
 };
 
 struct Event_BatteryLevelChange : public EventBase {

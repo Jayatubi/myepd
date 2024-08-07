@@ -1,5 +1,4 @@
 #include "timer.h"
-#include "module/clock/clock.h"
 
 Timer::Timer()
     : nextTicket(0) {
@@ -16,7 +15,7 @@ Core::U32 Timer::setInterval(Core::S64 duration, const Timer::Callback& action) 
 Core::U32 Timer::addContext(Core::S64 duration, const Timer::Callback& action, Core::S32 repeat) {
     auto ticket = nextTicket++;
     Context context;
-    context.start = Clock::instance().getMilliseconds();
+    context.start = millis();
     context.duration = duration;
     context.action = action;
     context.repeat = repeat;
@@ -45,7 +44,7 @@ void Timer::update(Core::U64 deltaMs) {
     }
     pendingAdd.clear();
 
-    const auto now = Clock::instance().getMilliseconds();
+    const auto now = millis();
 
     for (auto& entry : contexts) {
         auto& context = entry.second;

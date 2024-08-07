@@ -1,7 +1,5 @@
 #include "battery.h"
 #include "core/basic_type/math.h"
-#include "module/timer/timer.h"
-#include "module/console/console.h"
 
 #define DEFAULT_VREF                1100
 #define CUSTOM_CONVERSION_FACTOR    2.989f
@@ -9,22 +7,30 @@
 #define LOW_BATTERY_VOLTAGE         3.3f
 
 Battery::Battery()
-    : channel(ADC1_CHANNEL_0), atten(ADC_ATTEN_DB_11), sampleIndex(0) {
+    : channel(ADC1_CHANNEL_0)
+    , atten(ADC_ATTEN_DB_11)
+    , sampleIndex(0)
+    , sampleInterval(0) {
 
     adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(channel, atten);
     esp_adc_cal_characterize(ADC_UNIT_1, atten, ADC_WIDTH_BIT_12, DEFAULT_VREF, &adc_chars);
 
     samples.resize(10);
-
-    measureBatteryLevel();
 }
 
 Battery::~Battery() {
 }
 
+void Battery::update(Core::U64 deltaMs) {
+    sampleInterval -= deltaMs;
+    if (sampleInterval <= 0) {
+        sampleInterval = 1_m;
+        sampleBatteryLevel();
+    }
+}
 
-void Battery::measureBatteryLevel() {
+void Battery::sampleBatteryLevel() {
     // 使用库进行校准
     auto raw_voltage = esp_adc_cal_raw_to_voltage(adc1_get_raw(channel), &adc_chars);
     auto voltage = (float) raw_voltage / 1000.0f * CUSTOM_CONVERSION_FACTOR; // 将mV转换为V，应用校正转换因子
