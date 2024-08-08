@@ -1,5 +1,6 @@
 #include "clock.h"
 #include "module/network/network.h"
+#include "module/console/console.h"
 #include "module/private.h"
 
 Clock::Clock()
@@ -30,10 +31,10 @@ void Clock::update(Core::U64 deltaMs) {
         case syncing: {
             if (getLocalTime(&_timeinfo, 0)) {
                 changeState(synced);
+                _resyncInterval = 60_m;
             } else {
                 _syncInterval -= deltaMs;
                 if (_syncInterval <= 0) {
-                    _resyncInterval = 60_m;
                     changeState(prepare);
                 }
             }

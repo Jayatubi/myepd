@@ -1,3 +1,4 @@
+
 #include "app.h"
 #include "module/gfx/gfx.h"
 #include "module/network/network.h"
@@ -5,10 +6,13 @@
 #include "module/timer/timer.h"
 #include "module/battery/battery.h"
 #include "module/weather/weather.h"
+#include "module/console/console.h"
 #include "icons/icon_wifi.h"
 #include "icons/icon_battery.h"
+#include "icons/icon_weather.h"
 
 static const int statusIconSize = 16;
+static const int weatherIconSize = 48;
 
 void App::Bootstrap() {
     Application::Bootstrap();
@@ -20,32 +24,48 @@ void App::Bootstrap() {
 }
 
 void App::setupNetwork() {
-    Event::instance().Listen(Core::Bind([this](const Event_NetworkStateChange& event) {
-        invalidate("network");
+    bool connected = false;
+    Event::instance().Listen(Core::Bind([=, this](const Event_NetworkStateChange& event) mutable {
+        bool newConnected = event.state == Network::State::connected;
+        if (connected != newConnected) {
+            invalidate("network");
+            connected = true;
+        }
     }));
 }
 
 void App::setupClock() {
     Core::U32 ticket = 0;
-    Event::instance().Listen(Core::Bind([this, ticket](const Event_ClockStateChange& event) mutable {
-        if (event.state == Clock::synced) {
-            auto& timer = Timer::instance();
-            timer.setTimeout((60 - Clock::instance().getSeconds()) * 1000, [this, ticket]() mutable {
-                ticket = Timer::instance().setInterval(60_m, [this]() {
+
+    bool synced = false;
+    Event::instance().Listen(Core::Bind([=, this](const Event_ClockStateChange& event) mutable {
+        bool newSynced = event.state == Clock::synced;
+        if (synced != newSynced) {
+            if (newSynced) {
+                auto& timer = Timer::instance();
+                timer.setTimeout((60 - Clock::instance().getSeconds()) * 1000, [this, ticket]() mutable {
+                    ticket = Timer::instance().setInterval(1_m, [this]() {
+                        invalidate("time");
+                    });
                     invalidate("time");
                 });
-                invalidate("time");
-            });
-        } else {
-            Timer::instance().clear(ticket);
+            } else {
+                Timer::instance().clear(ticket);
+            }
+            invalidate("time");
+            synced = newSynced;
         }
-        invalidate("time");
     }));
 }
 
 void App::setupWeather() {
-    Event::instance().Listen(Core::Bind([this](const Event_WeatherChange& event) mutable {
-        invalidate("weather");
+    bool fetched = false;
+    Event::instance().Listen(Core::Bind([=, this](const Event_WeatherChange& event) mutable {
+        bool newFetched = event.state == Weather::State::fetched;
+        if (fetched != newFetched) {
+            invalidate("weather");
+            fetched = newFetched;
+        }
     }));
 }
 
@@ -56,15 +76,15 @@ void App::setupBattery() {
 }
 
 void App::repaint() {
-    if (with_flag("borders")) {
-        auto& gfx = GFX::instance();
-        repaintInRegion(0, 0, gfx.screenWidth(), gfx.screenHeight(),
-                        [](GFX& gfx) {
-                            for (int y = gfx.screenHeight() - 1; y >= 0; y -= 8) {
-                                gfx.display().drawLine(0, y, gfx.screenWidth(), y, GxEPD_BLACK);
-                            }
-                        });
-    }
+//    if (with_flag("borders")) {
+//        auto& gfx = GFX::instance();
+//        repaintInRegion(0, 0, gfx.screenWidth(), gfx.screenHeight(),
+//                        [](GFX& gfx) {
+//                            for (int y = gfx.screenHeight() - 1; y >= 0; y -= 8) {
+//                                gfx.display().drawLine(0, y, gfx.screenWidth(), y, GxEPD_BLACK);
+//                            }
+//                        });
+//    }
     if (with_flag("network") || with_flag("battery")) {
         repaintStatusbar();
     }
@@ -152,8 +172,52 @@ void App::repaintWeather() {
 
     repaintInRegion(left, top, right, bottom,
                     [&](GFX& gfx) {
-                        auto& u8g2 = gfx.u8g2();
-                        u8g2.print("Weather is coming soon...");
+                        auto& weather = Weather::instance();
+                        if (weather.state() == Weather::State::fetched) {
+                            const auto& dailies = Weather::instance().dailies();
+                            const Core::S32 gridSize = gfx.screenWidth() / dailies.size();
+                            const Core::F32 iconScale = 0.75f;
+                            const Core::F32 scaledIconSize = weatherIconSize * iconScale;
+                            const Core::S32 temperatureWidth = 20;
+
+                            int px = 0;
+
+                            auto nextIcon = [&](const Weather::Daily& daily) {
+                                String weatherText = daily.dayText != daily.nightText ? daily.dayText + "转" + daily.nightText : daily.dayText;
+                                // TODO: based on real time
+                                bool daylight = true;
+                                auto code = daylight ? daily.dayCode : daily.nightCode;
+
+                                gfx.drawBitmap(getWeatherIcon(code),
+                                               px + (gridSize - temperatureWidth - scaledIconSize) / 2,
+                                               top,
+                                               weatherIconSize, weatherIconSize, iconScale);
+
+                                auto& u8g2 = gfx.u8g2();
+                                auto lineHeight = gfx.lineHeight();
+                                auto centeredText = [&](Core::S32 x, Core::S32 y, Core::S32 width, String& text){
+                                    u8g2.setCursor(x + (width - u8g2.getUTF8Width(text.c_str())) / 2, y);
+                                    u8g2.print(text);
+                                };
+
+                                centeredText(px + gridSize - temperatureWidth, top + lineHeight, temperatureWidth, String(daily.high) + "°");
+                                centeredText(px + gridSize - temperatureWidth, top + scaledIconSize, temperatureWidth, String(daily.low) + "°");
+
+//                                gfx.display().drawFastVLine(
+//                                    px + scaledIconSize + temperatureWidth / 2,
+//                                    top + lineHeight + 2,
+//                                    scaledIconSize - lineHeight * 2 - 4,
+//                                    GxEPD_BLACK);
+
+                                centeredText(px, top + scaledIconSize + lineHeight * 2, gridSize, String(daily.timeinfo.tm_mon + 1) + "月" + String(daily.timeinfo.tm_mday) + "日");
+
+                                px += gridSize;
+                            };
+
+                            for (const auto& daily : dailies) {
+                                nextIcon(daily);
+                            }
+                        }
                     });
 
     auto& weather = Weather::instance();
@@ -162,7 +226,13 @@ void App::repaintWeather() {
                         [&](GFX& gfx) {
                             auto& u8g2 = gfx.u8g2();
                             u8g2.setCursor(0, statusIconSize);
-                            gfx.u8g2().printf("%s %d℃", weather.city().c_str(), weather.now().temperature);
+                            gfx.u8g2().printf("%s %d°", weather.city().c_str(), weather.now().temperature);
                         });
     }
+}
+
+void App::hibernate() {
+    pinMode(GPIO_NUM_12, INPUT_PULLUP);
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_12, LOW);
+    esp_deep_sleep_start();
 }

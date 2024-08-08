@@ -29,4 +29,6 @@ private:
     void repaintTime();
 
     void repaintWeather();
+
+    void hibernate();
 };

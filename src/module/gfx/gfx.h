@@ -27,14 +27,11 @@ public:
 
     int8_t lineHeight() const;
 
-    void drawBitmap(const Core::U8* bitmap, Core::S16 x, Core::S16 y, Core::S16 w, Core::S16 h);
+    void drawBitmap(const Core::U8* bitmap, Core::S16 x, Core::S16 y, Core::S16 w, Core::S16 h, Core::F32 scale = 1);
 
-    void wake(bool initial = true);
-
-    void hibernate();
+    void poweroff();
 
 private:
     U8G2_FOR_ADAFRUIT_GFX* _u8g2;
     DisplayType* _display;
-    bool hibernated;
 };

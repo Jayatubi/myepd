@@ -66,7 +66,7 @@ void Weather::fetchNow() {
         auto now = doc["results"][0]["now"];
         _now.temperature = now["temperature"];
         _now.code = now["code"];
-
+        _now.text = now["text"].as<String>();
         _city = doc["results"][0]["location"]["name"].as<String>();
     } else {
         Console::instance().serial().println(http.errorToString(code));
@@ -91,13 +91,16 @@ void Weather::fetchDailies() {
         _dailies.clear();
         for (const auto& daily : doc["results"][0]["daily"].as<JsonArray>()) {
             Daily _daily;
-            _daily.daylight = daily["code_day"];
-            _daily.night = daily["code_night"];
+            _daily.dayCode = daily["code_day"];
+            _daily.dayText = daily["text_day"].as<String>();
+            _daily.nightCode = daily["code_night"];
+            _daily.nightText = daily["text_night"].as<String>();
             _daily.high = daily["high"];
             _daily.low = daily["low"];
             _daily.wind = daily["wind_direction_degree"];
             _daily.rainfall = daily["rainfall"];
             _daily.precip = daily["precip"];
+            strptime(daily["date"], "%Y-%m-%d", &_daily.timeinfo);
             _dailies.emplace_back(_daily);
         }
     } else {

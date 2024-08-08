@@ -1,5 +1,6 @@
 #include "battery.h"
 #include "core/basic_type/math.h"
+//#include "module/console/console.h"
 
 #define DEFAULT_VREF                1100
 #define CUSTOM_CONVERSION_FACTOR    2.989f
@@ -25,7 +26,7 @@ Battery::~Battery() {
 void Battery::update(Core::U64 deltaMs) {
     sampleInterval -= deltaMs;
     if (sampleInterval <= 0) {
-        sampleInterval = 1_m;
+        sampleInterval = 10_s;
         sampleBatteryLevel();
     }
 }
@@ -37,7 +38,7 @@ void Battery::sampleBatteryLevel() {
     // 应用滤波
     samples[sampleIndex] = voltage;
     sampleIndex = (sampleIndex + 1) % samples.size();
-
+//    Console::instance().printf("voltage: %d %f\n", raw_voltage, voltage);
     int count = 0;
     auto total = samples.reduce(0.f, [&count](Core::F32 sum, const Core::F32& value) {
         count += value > 0 ? 1 : 0;

@@ -7,13 +7,12 @@
 #define EPD_SCK_PIN         13
 #define EPD_MOSI_PIN        14
 
-GFX::GFX()
-    : hibernated(true) {
+GFX::GFX() {
     SPI.begin(EPD_SCK_PIN, -1, EPD_MOSI_PIN, -1);
     SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
 
     _display = new DisplayType(GxEPD2_213_BN(EPD_CS_PIN, EPD_DC_PIN, EPD_RST_PIN, EPD_BUSY_PIN));
-    wake();
+    _display->init(0, true, 2, false);
     _display->setRotation(1);
     _display->clearScreen();
 
@@ -24,18 +23,8 @@ GFX::GFX()
     _u8g2->setFont(u8g2_font_wqy14_t_gb2312);
 }
 
-void GFX::wake(bool initial) {
-    if (hibernated) {
-        _display->init(0, initial, 10, false);
-        hibernated = false;
-    }
-}
-
-void GFX::hibernate() {
-    if (!hibernated) {
-        _display->powerOff();
-        hibernated = true;
-    }
+void GFX::poweroff() {
+    _display->powerOff();
 }
 
 GFX::~GFX() {
@@ -79,11 +68,16 @@ int8_t GFX::lineHeight() const {
     return _u8g2->u8g2.font_info.ascent_para - _u8g2->u8g2.font_info.descent_para;
 }
 
-void GFX::drawBitmap(const Core::U8* bitmap, Core::S16 x, Core::S16 y, Core::S16 w, Core::S16 h) {
+void GFX::drawBitmap(const Core::U8* bitmap, Core::S16 x, Core::S16 y, Core::S16 w, Core::S16 h, Core::F32 scale) {
     const auto line = (w + 7) / 8;
-    for (Core::S16 py = 0; py < h; py++) {
-        for (Core::S16 px = 0; px < w; px++) {
-            auto bit = bitmap[py * line + px / 8] & (0x80 >> (px % 8));
+    auto sw = (Core::S16)(w * scale);
+    auto sh = (Core::S16)(h * scale);
+
+    for (Core::S16 py = 0; py < sh; py++) {
+        for (Core::S16 px = 0; px < sw; px++) {
+            auto sx = (Core::S16)(px / scale);
+            auto sy = (Core::S16)(py / scale);
+            auto bit = bitmap[sy * line + sx / 8] & (0x80 >> (sx % 8));
             _display->drawPixel(x + px, y + py, bit ? GxEPD_BLACK : GxEPD_WHITE);
         }
     }

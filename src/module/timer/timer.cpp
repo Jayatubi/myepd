@@ -13,7 +13,7 @@ Core::U32 Timer::setInterval(Core::S64 duration, const Timer::Callback& action) 
 }
 
 Core::U32 Timer::addContext(Core::S64 duration, const Timer::Callback& action, Core::S32 repeat) {
-    auto ticket = nextTicket++;
+    auto ticket = ++nextTicket;
     Context context;
     context.start = millis();
     context.duration = duration;

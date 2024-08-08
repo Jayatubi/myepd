@@ -12,17 +12,21 @@ public:
     };
     struct Now {
         Core::U32 code;
+        String text;
         Core::U32 temperature;
     };
 
     struct Daily {
-        Core::U32 daylight;
-        Core::U32 night;
+        Core::U32 dayCode;
+        String dayText;
+        Core::U32 nightCode;
+        String nightText;
         Core::U32 wind;
         Core::U32 high;
         Core::U32 low;
         Core::U32 precip;
         Core::F32 rainfall;
+        tm timeinfo;
     };
 public:
     Weather();

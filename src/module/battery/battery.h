@@ -26,7 +26,7 @@ private:
     Core::Vector<Core::F32> samples;
     Core::U32 sampleIndex;
     Core::U8 _level;
-    Core::S32 sampleInterval;
+    Core::S64 sampleInterval;
 };
 
 struct Event_BatteryLevelChange : public EventBase {

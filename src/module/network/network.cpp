@@ -56,7 +56,7 @@ void Network::update(int64_t deltaMs) {
 }
 
 void Network::resetLifetime() {
-    lifetime = 60_m;
+    lifetime = 30_s;
 }
 
 const char* Network::get_ssid() const {
