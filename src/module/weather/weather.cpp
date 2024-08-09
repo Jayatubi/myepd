@@ -100,6 +100,7 @@ void Weather::fetchDailies() {
             _daily.wind = daily["wind_direction_degree"];
             _daily.rainfall = daily["rainfall"];
             _daily.precip = daily["precip"];
+            _daily.humidity = daily["humidity"];
             strptime(daily["date"], "%Y-%m-%d", &_daily.timeinfo);
             _dailies.emplace_back(_daily);
         }

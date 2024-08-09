@@ -90,16 +90,23 @@ void Application::Teardown()
 
 void Application::Tick()
 {
-    auto now = millis();
     static Core::U64 lastMs = 0;
-    RegisterdModules::Tick(lastMs != 0 ? now - lastMs : 0);
-    lastMs = now;
+
+    auto frameStart = millis();
+    RegisterdModules::Tick(lastMs != 0 ? frameStart - lastMs : 0);
 
     if (flags.size() > 0)
     {
         repaint();
         flags.clear();
     }
+
+//    auto duration = std::max<long>(0, 1000 - (millis() - frameStart));
+//    if (duration > 0) {
+//        delay(duration);
+//    }
+
+    lastMs = frameStart;
 }
 
 bool Application::with_flag(const String &flag)

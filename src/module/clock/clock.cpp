@@ -24,7 +24,7 @@ void Clock::update(Core::U64 deltaMs) {
             if (network.online()) {
                 configTzTime(time_zone, ntp_server);
                 changeState(syncing);
-                _syncInterval = 5_m;
+                _syncInterval = 5_s;
             }
             break;
         }

@@ -26,6 +26,7 @@ public:
         Core::U32 low;
         Core::U32 precip;
         Core::F32 rainfall;
+        Core::U32 humidity;
         tm timeinfo;
     };
 public:
