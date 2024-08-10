@@ -15,7 +15,7 @@ Clock::~Clock() {
 void Clock::update(Core::U64 deltaMs) {
     switch (_state) {
         case idle: {
-            changeState(prepare);
+            setState(prepare);
             break;
         }
         case prepare: {
@@ -23,19 +23,19 @@ void Clock::update(Core::U64 deltaMs) {
             network.wakeup();
             if (network.online()) {
                 configTzTime(time_zone, ntp_server);
-                changeState(syncing);
+                setState(syncing);
                 _syncInterval = 5_s;
             }
             break;
         }
         case syncing: {
             if (getLocalTime(&_timeinfo, 0)) {
-                changeState(synced);
+                setState(synced);
                 _resyncInterval = 60_m;
             } else {
                 _syncInterval -= deltaMs;
                 if (_syncInterval <= 0) {
-                    changeState(prepare);
+                    setState(prepare);
                 }
             }
         }
@@ -43,7 +43,7 @@ void Clock::update(Core::U64 deltaMs) {
         case synced: {
             _resyncInterval -= deltaMs;
             if (_resyncInterval <= 0) {
-                changeState(idle);
+                setState(idle);
             }
         }
             break;
@@ -51,7 +51,7 @@ void Clock::update(Core::U64 deltaMs) {
 }
 
 void Clock::resync() {
-    changeState(idle);
+    setState(idle);
 }
 
 time_t Clock::getTime() const {
@@ -104,7 +104,7 @@ Clock::State Clock::state() const {
     return _state;
 }
 
-void Clock::changeState(Clock::State newState) {
+void Clock::setState(Clock::State newState) {
     if (_state != newState) {
         _state = newState;
         Event_ClockStateChange event;

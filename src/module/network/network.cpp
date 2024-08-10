@@ -28,17 +28,17 @@ void Network::update(int64_t deltaMs) {
             if (_awake) {
                 WiFiClass::mode(WIFI_STA);
                 WiFi.begin(ssid, password);
-                changeState(connecting);
+                setState(connecting);
             }
         }
             break;
         case connecting: {
             if (status == WL_CONNECTED) {
                 resetLifetime();
-                changeState(connected);
+                setState(connected);
             }
             if (status == WL_CONNECT_FAILED) {
-                changeState(idle);
+                setState(idle);
             }
         }
             break;
@@ -47,7 +47,7 @@ void Network::update(int64_t deltaMs) {
             if (status != WL_CONNECTED || lifetime <= 0) {
                 WiFi.disconnect(true);
                 _awake = false;
-                changeState(idle);
+                setState(idle);
             }
         }
             break;
@@ -81,7 +81,7 @@ Network::State Network::state() const {
     return _state;
 }
 
-void Network::changeState(Network::State newState) {
+void Network::setState(Network::State newState) {
     if (_state != newState) {
         _state = newState;
         Event_NetworkStateChange event{};

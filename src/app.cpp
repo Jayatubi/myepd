@@ -5,10 +5,12 @@
 #include "module/clock/clock.h"
 #include "module/timer/timer.h"
 #include "module/battery/battery.h"
+#include "module/location/location.h"
 #include "module/weather/weather.h"
 #include "module/console/console.h"
 #include "icons/icon_wifi.h"
 #include "icons/icon_battery.h"
+#include "icons/icon_location.h"
 #include "icons/icon_weather.h"
 #include "core/basic_type/math.h"
 
@@ -78,6 +80,12 @@ void App::setupClock() {
     }));
 }
 
+void App::setupLocation() {
+    Event::instance().Listen(Core::Bind([this](const Event_LocationStateChanged& event) {
+        invalidate("location");
+    }));
+}
+
 void App::setupWeather() {
     bool fetched = false;
     Event::instance().Listen(Core::Bind([=, this](const Event_WeatherChange& event) mutable {
@@ -96,16 +104,7 @@ void App::setupBattery() {
 }
 
 void App::repaint() {
-//    if (with_flag("borders")) {
-//        auto& gfx = GFX::instance();
-//        repaintInRegion(0, 0, gfx.screenWidth(), gfx.screenHeight(),
-//                        [](GFX& gfx) {
-//                            for (int y = gfx.screenHeight() - 1; y >= 0; y -= 8) {
-//                                gfx.display().drawLine(0, y, gfx.screenWidth(), y, GxEPD_BLACK);
-//                            }
-//                        });
-//    }
-    if (with_flag("network") || with_flag("battery")) {
+    if (with_flag("network") || with_flag("battery") || with_flag("location")) {
         repaintStatusbar();
     }
     if (with_flag("weather")) {
@@ -155,10 +154,11 @@ void App::repaintStatusbar() {
             };
 
             nextIcon(getBatteryIcon(Battery::instance().level()));
-
-            auto& network = Network::instance();
-            if (network.state() == Network::State::connected) {
+            if (Network::instance().state() == Network::State::connected) {
                 nextIcon(Icon_WiFi);
+            }
+            if (Location::instance().state() == Location::State::locating) {
+                nextIcon(Icon_Location);
             }
         });
 }

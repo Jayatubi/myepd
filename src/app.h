@@ -19,6 +19,8 @@ private:
 
     void setupBattery();
 
+    void setupLocation();
+
     void setupWeather();
 
 private:

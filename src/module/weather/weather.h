@@ -44,13 +44,13 @@ public:
 private:
     void fetchNow();
     void fetchDailies();
-    void changeState(Weather::State newState);
-
+    void setState(Weather::State newState);
+    String buildQueryString();
 private:
     String server;
     String apiKey;
     String lang;
-    String cityCode;
+//    String cityCode;
     String lastError;
 
     State _state;

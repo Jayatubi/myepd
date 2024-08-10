@@ -2,6 +2,7 @@
 #include "module/private.h"
 #include "module/console/console.h"
 #include "module/network/network.h"
+#include "module/location/location.h"
 #include <HttpClient.h>
 #include <ArduinoJson.h>
 
@@ -9,7 +10,7 @@ Weather::Weather()
     : _state(idle) {
     server = "https://api.seniverse.com/v3/weather";
     apiKey = WEATHER_API_KEY;
-    cityCode = "chengdu";
+//    cityCode = "chengdu";
     lang = "zh-Hans";
 }
 
@@ -24,16 +25,16 @@ const Core::Vector<Weather::Daily>& Weather::dailies() const {
 void Weather::update(Core::U64 deltaMs) {
     switch (_state) {
         case idle: {
-            changeState(fetching);
+            setState(fetching);
             break;
         }
         case fetching: {
             auto& network = Network::instance();
             network.wakeup();
-            if (network.online()) {
+            if (network.online() && Location::instance().state() == Location::State::located) {
                 fetchNow();
                 fetchDailies();
-                changeState(fetched);
+                setState(fetched);
                 _refetchTimeout = 30_m;
             }
             break;
@@ -41,7 +42,7 @@ void Weather::update(Core::U64 deltaMs) {
         case fetched: {
             _refetchTimeout -= deltaMs;
             if (_refetchTimeout <= 0) {
-                changeState(idle);
+                setState(idle);
             }
             break;
         }
@@ -51,10 +52,7 @@ void Weather::update(Core::U64 deltaMs) {
 void Weather::fetchNow() {
     String url = server
         + "/now.json"
-        + "?key=" + apiKey
-        + "&location=" + cityCode
-        + "&language=" + lang
-        + "&unit=" + "c";
+        + buildQueryString();
 
     HTTPClient http;
     http.begin(url);
@@ -74,12 +72,10 @@ void Weather::fetchNow() {
 }
 
 void Weather::fetchDailies() {
+    auto& location = Location::instance();
     String url = server
         + "/daily.json"
-        + "?key=" + apiKey
-        + "&location=" + cityCode
-        + "&language=" + lang
-        + "&unit=" + "c";
+        + buildQueryString();
 
     HTTPClient http;
     http.begin(url);
@@ -109,11 +105,20 @@ void Weather::fetchDailies() {
     }
 }
 
+String Weather::buildQueryString() {
+    auto& location = Location::instance();
+    return "?key=" + apiKey
+        + "&location=" + location.detail().latitude + ":" + location.detail().longitude
+        + "&language=" + lang
+        + "&unit=" + "c";
+}
+
+
 Weather::State Weather::state() const {
     return _state;
 }
 
-void Weather::changeState(Weather::State newState) {
+void Weather::setState(Weather::State newState) {
     if (_state != newState) {
         _state = newState;
 

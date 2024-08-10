@@ -28,7 +28,7 @@ public:
     void wakeup();
 
 private:
-    void changeState(State newState);
+    void setState(State newState);
 
 private:
     bool _awake;

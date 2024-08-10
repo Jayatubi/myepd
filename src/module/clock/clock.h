@@ -44,7 +44,7 @@ private:
 
     tm& updateTimeinfo();
 
-    void changeState(Clock::State newState);
+    void setState(Clock::State newState);
 
 private:
     State _state;

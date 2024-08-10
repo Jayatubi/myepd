@@ -6,6 +6,7 @@
 #include "module/event/event.h"
 #include "module/timer/timer.h"
 #include "module/battery/battery.h"
+#include "module/location/location.h"
 #include "module/weather/weather.h"
 
 namespace Details
@@ -75,12 +76,13 @@ typedef Modules<
     Timer,
     Event,
     Battery,
+    Location,
     Weather>
-    RegisterdModules;
+    RegisteredModules;
 
 void Application::Bootstrap()
 {
-    RegisterdModules();
+    RegisteredModules();
     invalidate("*");
 }
 
@@ -93,7 +95,7 @@ void Application::Tick()
     static Core::U64 lastMs = 0;
 
     auto frameStart = millis();
-    RegisterdModules::Tick(lastMs != 0 ? frameStart - lastMs : 0);
+    RegisteredModules::Tick(lastMs != 0 ? frameStart - lastMs : 0);
 
     if (flags.size() > 0)
     {
