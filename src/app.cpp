@@ -10,6 +10,7 @@
 #include "icons/icon_wifi.h"
 #include "icons/icon_battery.h"
 #include "icons/icon_weather.h"
+#include "core/basic_type/math.h"
 
 static const int statusIconSize = 16;
 static const int weatherIconSize = 48;
@@ -33,7 +34,6 @@ void App::Tick() {
     Application::Tick();
 
     if (powerSaving-- <= 0 && Network::instance().state() == Network::State::idle) {
-        Console::instance().printf("sleep\n");
         sleep();
     }
 }
@@ -177,7 +177,7 @@ void App::repaintTime() {
             if (clock.state() == Clock::State::synced) {
                 static const char* weekDays[] = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
                 static char buffer[0xFF] = {0};
-                snprintf(buffer, sizeof(buffer), "%04d/%02d/%02d %s %02d:%02d\n",
+                snprintf(buffer, sizeof(buffer), "%04d/%02d/%02d %s %02d:%02d",
                          clock.getYear(), clock.getMonth() + 1, clock.getDate(), weekDays[clock.getDay()],
                          clock.getHours(), clock.getMinutes());
                 auto& u8g2 = gfx.u8g2();
@@ -203,14 +203,14 @@ void App::repaintWeather() {
                 const Core::S32 gridSize = gfx.screenWidth() / dailies.size();
                 const Core::F32 iconScale = 0.75f;
                 const Core::S32 scaledIconSize = weatherIconSize * iconScale;
-                const Core::S32 temperatureWidth = 30;
+                const Core::S32 temperatureWidth = 20;
 
                 int px = 0;
 
                 auto nextIcon = [&](const Weather::Daily& daily) {
                     String weatherText = daily.dayText != daily.nightText ? daily.dayText + "转" + daily.nightText : daily.dayText;
-                    // TODO: based on real time
-                    bool daylight = true;
+                    const auto hour = Clock::instance().getHours();
+                    bool daylight = Core::inRange(hour, 6, 18);
                     auto code = daylight ? daily.dayCode : daily.nightCode;
 
                     gfx.drawBitmap(getWeatherIcon(code),
@@ -220,17 +220,19 @@ void App::repaintWeather() {
 
                     auto lineHeight = gfx.lineHeight();
                     auto tx = px + gridSize - temperatureWidth;
-                    auto ty = top + (scaledIconSize - temperatureWidth) / 2;
+                    auto ty = top;
                     auto tw = temperatureWidth;
-                    auto th = temperatureWidth;
-                    alignText(tx, ty, tw, th, Right, Top, String(daily.high) + "°");
-                    alignText(tx, ty, tw, th, Left, Bottom, String(daily.low) + "°");
+                    auto th = scaledIconSize;
+                    gfx.alignText(tx, ty, tw, th, GFX::Center, GFX::Top, String(daily.high) + "°");
+                    gfx.alignText(tx, ty, tw, th, GFX::Center, GFX::Bottom, String(daily.low) + "°");
                     gfx.display().drawLine(
                         tx + tw, ty + th / 2,
                         tx, ty + th / 2,
                         GxEPD_BLACK);
 
-                    alignText(px, top + scaledIconSize, gridSize, lineHeight * 2, Center, Bottom, String(daily.timeinfo.tm_mon + 1) + "月" + String(daily.timeinfo.tm_mday) + "日");
+                    static char buffer[0xFF] = {0};
+                    snprintf(buffer, sizeof(buffer), "%02d/%02d", daily.timeinfo.tm_mon + 1, daily.timeinfo.tm_mday);
+                    gfx.alignText(px, top + scaledIconSize, gridSize, lineHeight * 2, GFX::Center, GFX::Bottom, buffer);
 
                     px += gridSize;
                 };
@@ -255,37 +257,10 @@ void App::repaintWeather() {
 }
 
 void App::sleep() {
-//    pinMode(GPIO_NUM_12, INPUT_PULLUP);
-//    esp_sleep_enable_ext0_wakeup(GPIO_NUM_12, LOW);
-//    esp_deep_sleep_start();
-    esp_sleep_enable_timer_wakeup(30 * 1000 * 1000);
+    pinMode(GPIO_NUM_12, INPUT_PULLUP);
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_12, LOW);
+    esp_sleep_enable_timer_wakeup(30_s * 1000);
     esp_light_sleep_start();
+//    esp_deep_sleep_start();
     resetPowerSaving();
-}
-
-void App::alignText(Core::S32 x, Core::S32 y, Core::S32 w, Core::S32 h, App::HAlign hAlign, VAlign vAlign, const String& text) {
-    auto& u8g2 = GFX::instance().u8g2();
-    auto px = 0;
-    auto py = 0;
-    switch (hAlign) {
-        case Left:px = x;
-            break;
-        case Center:px = x + (w - u8g2.getUTF8Width(text.c_str())) / 2;
-            break;
-        case Right:px = x + w - u8g2.getUTF8Width(text.c_str());
-            break;
-    }
-
-    auto lineHeight = GFX::instance().lineHeight();
-
-    switch (vAlign) {
-        case Top:py = y + lineHeight;
-            break;
-        case Middle:py = y + (h - lineHeight) / 2;
-            break;
-        case Bottom:py = y + h;
-            break;
-    }
-    u8g2.setCursor(px, py);
-    u8g2.print(text);
 }

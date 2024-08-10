@@ -34,7 +34,7 @@ void Weather::update(Core::U64 deltaMs) {
                 fetchNow();
                 fetchDailies();
                 changeState(fetched);
-                _refetchTimeout = 60_m;
+                _refetchTimeout = 30_m;
             }
             break;
         }

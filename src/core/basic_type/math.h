@@ -22,7 +22,7 @@ namespace Core {
     }
 
     template<typename ValueType>
-    bool isInRange(const ValueType& value, const ValueType& lowerBound, const ValueType& upperBound) {
+    bool inRange(const ValueType& value, const ValueType& lowerBound, const ValueType& upperBound) {
         return value >= lowerBound && value <= upperBound;
     }
 

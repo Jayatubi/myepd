@@ -13,6 +13,8 @@ public:
 
     ~GFX();
 
+    void poweroff();
+
     void beginFrame();
 
     bool endFrame();
@@ -21,15 +23,26 @@ public:
 
     DisplayType& display();
 
-    int16_t screenWidth() const;
+    Core::S32 screenWidth() const;
 
-    int16_t screenHeight() const;
+    Core::S32 screenHeight() const;
 
-    int8_t lineHeight() const;
+    Core::S32 lineHeight() const;
 
     void drawBitmap(const Core::U8* bitmap, Core::S16 x, Core::S16 y, Core::S16 w, Core::S16 h, Core::F32 scale = 1);
 
-    void poweroff();
+
+    enum HAlign {
+        Left,
+        Center,
+        Right
+    };
+    enum VAlign {
+        Top,
+        Middle,
+        Bottom
+    };
+    void alignText(Core::S32 x, Core::S32 y, Core::S32 w, Core::S32 h, HAlign hAlign, VAlign vAlign, const String& text);
 
 private:
     U8G2_FOR_ADAFRUIT_GFX* _u8g2;

@@ -56,15 +56,15 @@ bool GFX::endFrame() {
     return _display->nextPage();
 }
 
-int16_t GFX::screenWidth() const {
+Core::S32 GFX::screenWidth() const {
     return _display->width();
 }
 
-int16_t GFX::screenHeight() const {
+Core::S32 GFX::screenHeight() const {
     return _display->height();
 }
 
-int8_t GFX::lineHeight() const {
+Core::S32 GFX::lineHeight() const {
     return _u8g2->u8g2.font_info.ascent_para - _u8g2->u8g2.font_info.descent_para;
 }
 
@@ -81,4 +81,30 @@ void GFX::drawBitmap(const Core::U8* bitmap, Core::S16 x, Core::S16 y, Core::S16
             _display->drawPixel(x + px, y + py, bit ? GxEPD_BLACK : GxEPD_WHITE);
         }
     }
+}
+
+void GFX::alignText(Core::S32 x, Core::S32 y, Core::S32 w, Core::S32 h, HAlign hAlign, VAlign vAlign, const String& text) {
+    auto px = 0;
+    auto py = 0;
+    switch (hAlign) {
+        case Left:px = x;
+            break;
+        case Center:px = x + (w - _u8g2->getUTF8Width(text.c_str())) / 2;
+            break;
+        case Right:px = x + w - _u8g2->getUTF8Width(text.c_str());
+            break;
+    }
+
+    auto lineHeight = GFX::instance().lineHeight();
+
+    switch (vAlign) {
+        case Top:py = y + lineHeight;
+            break;
+        case Middle:py = y + (h - lineHeight) / 2;
+            break;
+        case Bottom:py = y + h;
+            break;
+    }
+    _u8g2->setCursor(px, py);
+    _u8g2->print(text);
 }
