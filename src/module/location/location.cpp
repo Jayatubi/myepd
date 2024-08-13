@@ -73,7 +73,6 @@ bool Location::locate() {
     http.begin(url);
     http.setTimeout(5000);
     auto code = http.GET();
-    Console::instance().printf("%s %d\n", url.c_str(), code);
     if (code == HTTP_CODE_OK) {
         JsonDocument doc;
         deserializeJson(doc, http.getString());

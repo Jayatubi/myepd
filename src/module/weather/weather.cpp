@@ -72,7 +72,6 @@ void Weather::fetchNow() {
 }
 
 void Weather::fetchDailies() {
-    auto& location = Location::instance();
     String url = server
         + "/daily.json"
         + buildQueryString();

@@ -100,11 +100,13 @@ void GFX::alignText(Core::S32 x, Core::S32 y, Core::S32 w, Core::S32 h, HAlign h
     switch (vAlign) {
         case Top:py = y + lineHeight;
             break;
-        case Middle:py = y + (h - lineHeight) / 2;
+        case Middle:py = y + (h + lineHeight) / 2;
             break;
         case Bottom:py = y + h;
             break;
     }
     _u8g2->setCursor(px, py);
     _u8g2->print(text);
+//    _display->drawRect(x, y, w, h, GxEPD_BLACK);
+//    _display->fillCircle(px, py, 3, GxEPD_BLACK);
 }

@@ -200,39 +200,37 @@ void App::repaintWeather() {
             left, top, right, bottom,
             [&](GFX& gfx) {
                 const auto& dailies = Weather::instance().dailies();
+                const Core::S32 regionHeight = bottom - top;
+                const Core::S32 padding = 5;
                 const Core::S32 gridSize = gfx.screenWidth() / dailies.size();
-                const Core::F32 iconScale = 0.75f;
+                const Core::F32 iconScale = 0.5f;
                 const Core::S32 scaledIconSize = weatherIconSize * iconScale;
-                const Core::S32 temperatureWidth = 20;
+                const Core::S32 temperatureWidth = gridSize - padding * 4 - scaledIconSize;
 
                 int px = 0;
 
                 auto nextIcon = [&](const Weather::Daily& daily) {
-                    String weatherText = daily.dayText != daily.nightText ? daily.dayText + "转" + daily.nightText : daily.dayText;
-                    const auto hour = Clock::instance().getHours();
-                    bool daylight = Core::inRange(hour, 6, 18);
-                    auto code = daylight ? daily.dayCode : daily.nightCode;
+//                    String weatherText = daily.dayText != daily.nightText ? daily.dayText + "转" + daily.nightText : daily.dayText;
 
-                    gfx.drawBitmap(getWeatherIcon(code),
-                                   px + (gridSize - temperatureWidth - scaledIconSize) / 2,
-                                   top,
-                                   weatherIconSize, weatherIconSize, iconScale);
+                    const Core::S32 contentWidth = gridSize - padding * 2;
+                    const Core::S32 contentHeight = (scaledIconSize + padding) * 2;
+                    const Core::S32 iconX = (contentWidth - temperatureWidth - scaledIconSize) / 2;
+                    gfx.drawBitmap(getWeatherIcon(daily.dayCode),
+                                   px + iconX, top, weatherIconSize, weatherIconSize, iconScale
+                    );
 
-                    auto lineHeight = gfx.lineHeight();
-                    auto tx = px + gridSize - temperatureWidth;
-                    auto ty = top;
-                    auto tw = temperatureWidth;
-                    auto th = scaledIconSize;
-                    gfx.alignText(tx, ty, tw, th, GFX::Center, GFX::Top, String(daily.high) + "°");
-                    gfx.alignText(tx, ty, tw, th, GFX::Center, GFX::Bottom, String(daily.low) + "°");
-                    gfx.display().drawLine(
-                        tx + tw, ty + th / 2,
-                        tx, ty + th / 2,
-                        GxEPD_BLACK);
+                    gfx.drawBitmap(getWeatherIcon(daily.nightCode),
+                                   px + iconX, top + contentHeight - scaledIconSize, weatherIconSize, weatherIconSize, iconScale
+                    );
+
+                    gfx.alignText(px + iconX + scaledIconSize, top, temperatureWidth, scaledIconSize, GFX::Center, GFX::Middle, String(daily.high) + "°");
+                    gfx.alignText(px + iconX + scaledIconSize, top + contentHeight - scaledIconSize, temperatureWidth, scaledIconSize, GFX::Center, GFX::Middle, String(daily.low) + "°");
 
                     static char buffer[0xFF] = {0};
                     snprintf(buffer, sizeof(buffer), "%02d/%02d", daily.timeinfo.tm_mon + 1, daily.timeinfo.tm_mday);
-                    gfx.alignText(px, top + scaledIconSize, gridSize, lineHeight * 2, GFX::Center, GFX::Bottom, buffer);
+                    gfx.alignText(px, top + contentHeight, gridSize, gfx.lineHeight(), GFX::Center, GFX::Middle, buffer);
+
+                    gfx.display().drawFastHLine(px + padding, top + contentHeight / 2, contentWidth, GxEPD_BLACK);
 
                     px += gridSize;
                 };
